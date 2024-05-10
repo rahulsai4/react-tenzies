@@ -1,25 +1,59 @@
 import { useEffect, useState } from "react";
+import Confetti from "react-confetti";
+import { nanoid } from "nanoid";
+
+function Square(props) {
+    const styles = props.isClicked
+        ? { backgroundColor: "#59e391" }
+        : { backgroundColor: "white" };
+
+    return (
+        <>
+            <button
+                value={props.value}
+                onClick={props.handleSquareClick}
+                style={styles}
+                className="square"
+            >
+                {props.value}
+            </button>
+        </>
+    );
+}
 
 export default function Game() {
-    const [squares, setSquares] = useState(
-        new Array(10).fill({
-            value: 0,
-            index: -1,
-            isClicked: false,
-        })
-    );
+    const [squares, setSquares] = useState(randomSquares);
+    const [gameOver, setGameOver] = useState(false);
 
-    useEffect(handleRoll, []);
+    function randomSquares() {
+        const arr = [];
+        for (let i = 0; i < 10; i++) {
+            arr.push({
+                value: Math.ceil(Math.random() * 6),
+                isClicked: false,
+                id: nanoid(),
+            });
+        }
+        return arr;
+    }
 
-    function handleSquareClick(event, index) {
-        event.target.className = !squares[index].isClicked
-            ? "square isClicked"
-            : "square";
+    function checkGameOver() {
+        let ans = true;
+        let first = squares[0].value;
+        let newArr = squares.filter((square) => {
+            return square.value === first;
+        });
+        return newArr.length === squares.length;
+    }
+    useEffect(() => {
+        setGameOver(checkGameOver());
+    }, [squares]);
 
+    function handleSquareClick(id) {
         setSquares((prevSquares) => {
             let newArr = [];
             for (let i = 0; i < 10; i++) {
-                if (i === index) {
+                if (prevSquares[i].id === id) {
                     newArr.push({
                         ...prevSquares[i],
                         isClicked: !prevSquares[i].isClicked,
@@ -33,50 +67,40 @@ export default function Game() {
     }
 
     function handleRoll() {
-        console.log(squares);
-        setSquares((prevSquares) => {
-            let newArr = [];
-            for (let i = 0; i < 10; i++) {
-                let r = Math.ceil(Math.random() * 6);
-                if (!prevSquares[i].isClicked) {
-                    newArr.push({ ...prevSquares[i], value: r, index: i });
-                } else {
-                    newArr.push({ ...prevSquares[i], index: i });
+        if (gameOver) {
+            setSquares(randomSquares);
+        } else {
+            setSquares((prevSquares) => {
+                const random = randomSquares();
+                const arr = [];
+                for (let i = 0; i < 10; i++) {
+                    if (prevSquares[i].isClicked === true) {
+                        arr.push(prevSquares[i]);
+                        continue;
+                    }
+                    arr.push(random[i]);
                 }
-            }
-            return newArr;
-        });
+                return arr;
+            });
+        }
     }
 
     let displaySquares = squares.map((square) => (
         <Square
             value={square.value}
-            index={square.index}
-            handleSquareClick={handleSquareClick}
+            isClicked={square.isClicked}
+            key={square.id}
+            handleSquareClick={() => handleSquareClick(square.id)}
         />
     ));
 
     return (
         <>
+            {gameOver && <Confetti />}
             <div className="squares-container">{displaySquares}</div>
             <br></br>
             <button onClick={handleRoll} className="roll">
-                Roll
-            </button>
-        </>
-    );
-}
-
-function Square(props) {
-    return (
-        <>
-            <button
-                className="square"
-                value={props.value}
-                index={props.index}
-                onClick={(event) => props.handleSquareClick(event, props.index)}
-            >
-                {props.value}
+                {gameOver ? "Restart" : "Roll"}
             </button>
         </>
     );
